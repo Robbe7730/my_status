@@ -14,6 +14,7 @@ use systemstat::{System, Platform};
 use std::{io, fs, str};
 use std::io::Read;
 use chrono::prelude::*;
+use systemstat::IpAddr::*;
 
 #[derive(Serialize, Deserialize, Default)]
 struct Header {
@@ -29,7 +30,7 @@ struct Header {
     click_events: Option<bool>,
 }
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default, Clone)]
 struct Status {
     full_text: String,
     
@@ -92,7 +93,7 @@ fn on_ac_power() -> io::Result<bool> {
     value_from_file::<i32>("/sys/class/power_supply/AC0/online").map(|v| v == 1)
 }
 
-fn battery() -> Status {
+fn battery() -> Option<Status> {
     let sys = System::new();
     let battery_perc = match sys.battery_life() {
         Ok(battery) =>  (battery.remaining_capacity*100.0).round(),
@@ -104,7 +105,7 @@ fn battery() -> Status {
         Err(_) => "Err",
     };
 
-    return Status {
+    return Some(Status {
         full_text: format!("{} {}%", charging_icon, battery_perc),
         urgent: Some(battery_perc <= 15.0),
         color:  if battery_perc <= 15.0 {
@@ -115,22 +116,43 @@ fn battery() -> Status {
                     None
                 },
         ..Default::default()
-    }
+    })
 }
 
-fn time() -> Status {
+fn time() -> Option<Status> {
     let now: DateTime<Local> = chrono::Local::now();
-    return Status {
+    return Some(Status {
         full_text: now.format("%R").to_string(),
         ..Default::default()
-    }
+    })
 }
 
-fn date() -> Status {
+fn date() -> Option<Status> {
     let now: DateTime<Local> = chrono::Local::now();
-    return Status {
+    return Some(Status {
         full_text: now.format("%e %b %Y").to_string(),
         ..Default::default()
+    })
+}
+
+fn network() -> Option<Status> {
+    let sys = System::new();
+    return match sys.networks() {
+        Ok(interfaces) => match interfaces["wlp3s0"].addrs[0].addr {
+                            Empty => None,
+                            Unsupported => None,
+                            V4(ip) => Some(Status {
+                                                full_text: ip.to_string(),
+                                                color: Some("#00FF00".to_string()),
+                                                ..Default::default()
+                                            }),
+                            V6(ip) => Some(Status {
+                                                full_text: ip.to_string(),
+                                                color: Some("#00FF00".to_string()),
+                                                ..Default::default()
+                                            }),
+                        }
+        Err(_) => None
     }
 }
 
@@ -142,13 +164,15 @@ fn header() -> String {
     json!(&header).to_string()
 }
 
-fn status() -> String{
-    let statuses = [
+fn status() -> String {
+    let mut statusses: Vec<Option<Status>> = vec![
+        network(),
         battery(),
-        time(),
         date(),
+        time(),
     ];
-    json!(&statuses).to_string()
+    statusses.retain(|ref x| x.is_some());
+    json!(&statusses).to_string()
 }
 
 fn main() {
