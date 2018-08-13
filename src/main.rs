@@ -6,12 +6,14 @@ extern crate serde_json;
 extern crate serde_derive;
 
 extern crate systemstat;
+extern crate chrono;
 
 use std::time::Duration;
 use std::thread::sleep;
 use systemstat::{System, Platform};
 use std::{io, fs, str};
 use std::io::Read;
+use chrono::prelude::*;
 
 #[derive(Serialize, Deserialize, Default)]
 struct Header {
@@ -103,7 +105,7 @@ fn battery() -> Status {
     };
 
     return Status {
-        full_text: format!("{}{}%", charging_icon, battery_perc),
+        full_text: format!("{} {}%", charging_icon, battery_perc),
         urgent: Some(battery_perc <= 15.0),
         color:  if battery_perc <= 15.0 {
                     Some("#FF0000".to_string())
@@ -112,6 +114,22 @@ fn battery() -> Status {
                 } else {
                     None
                 },
+        ..Default::default()
+    }
+}
+
+fn time() -> Status {
+    let now: DateTime<Local> = chrono::Local::now();
+    return Status {
+        full_text: now.format("%R").to_string(),
+        ..Default::default()
+    }
+}
+
+fn date() -> Status {
+    let now: DateTime<Local> = chrono::Local::now();
+    return Status {
+        full_text: now.format("%e %b %Y").to_string(),
         ..Default::default()
     }
 }
@@ -125,7 +143,11 @@ fn header() -> String {
 }
 
 fn status() -> String{
-    let statuses = [battery()];
+    let statuses = [
+        battery(),
+        time(),
+        date(),
+    ];
     json!(&statuses).to_string()
 }
 
