@@ -7,6 +7,8 @@ extern crate serde_derive;
 
 extern crate systemstat;
 extern crate chrono;
+extern crate libpulse_binding;
+extern crate wpactrl;
 
 use std::time::Duration;
 use std::thread::sleep;
@@ -14,7 +16,7 @@ use systemstat::{System, Platform};
 use std::{io, fs, str};
 use std::io::Read;
 use chrono::prelude::*;
-use systemstat::IpAddr::*;
+use std::process::Command;
 
 #[derive(Serialize, Deserialize, Default)]
 struct Header {
@@ -136,23 +138,28 @@ fn date() -> Option<Status> {
 }
 
 fn network() -> Option<Status> {
-    let sys = System::new();
-    return match sys.networks() {
-        Ok(interfaces) => match interfaces["wlp3s0"].addrs[0].addr {
-                            Empty => None,
-                            Unsupported => None,
-                            V4(ip) => Some(Status {
-                                                full_text: ip.to_string(),
-                                                color: Some("#00FF00".to_string()),
-                                                ..Default::default()
-                                            }),
-                            V6(ip) => Some(Status {
-                                                full_text: ip.to_string(),
-                                                color: Some("#00FF00".to_string()),
-                                                ..Default::default()
-                                            }),
-                        }
-        Err(_) => None
+    let output = Command::new("wpa_cli")
+                .arg("status")
+                .output()
+                .expect("failed to execute process");
+    let out = String::from_utf8_lossy(&output.stdout);
+    let mut ssid = "";
+    let mut ip = "";
+    for line in out.lines() {
+        let linesplit = line.split("=").collect::<Vec<&str>>();
+        match linesplit[0] {
+            "ssid" => ssid = linesplit[1],
+            "ip_address" => ip = linesplit[1],
+            _ => ()
+        }
+    }
+    return match ssid {
+        "" => None,
+        _ => Some( Status {
+            full_text: format!("{} ({})", ssid, ip),
+            color: Some("#00FF00".to_string()),
+            ..Default::default()
+        }),
     }
 }
 
@@ -170,6 +177,7 @@ fn status() -> String {
         battery(),
         date(),
         time(),
+        volume(),
     ];
     statusses.retain(|ref x| x.is_some());
     json!(&statusses).to_string()
