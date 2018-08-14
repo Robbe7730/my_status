@@ -163,6 +163,38 @@ fn network() -> Option<Status> {
     }
 }
 
+fn volume() -> Option<Status> {
+    let output = Command::new("amixer")
+                .arg("sget")
+                .arg("Master")
+                .output()
+                .expect("failed to execute process");
+    let out = String::from_utf8_lossy(&output.stdout);
+    let mut volume = "Err".to_string();
+    let mut status = "Err";
+    for line in out.lines() {
+        if line.starts_with("  Front Right") {
+            let linesplit: Vec<&str> = line.split(" ").collect();
+            volume = linesplit[6][1..].to_string();
+            status = &linesplit[7];
+            volume.pop();
+        }
+    }
+    let ret = match status {
+        "[on]" => format!("{}", volume),
+        "[off]" => format!("muted ({})", volume),
+        _ => status.to_string()
+    };
+    return Some( Status {
+        full_text: ret,
+        color: match status {
+            "[off]" => Some("#FFF000".to_string()),
+            _ => None
+        },
+        ..Default::default()
+    });
+}
+
 fn header() -> String {
     let header = Header {
         version: 1,
