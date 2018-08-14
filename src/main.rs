@@ -132,7 +132,7 @@ fn time() -> Option<Status> {
 fn date() -> Option<Status> {
     let now: DateTime<Local> = chrono::Local::now();
     return Some(Status {
-        full_text: now.format("%e %b %Y").to_string(),
+    full_text: now.format("%a %e %b %Y").to_string(),
         ..Default::default()
     })
 }
