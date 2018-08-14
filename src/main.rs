@@ -102,15 +102,19 @@ fn battery() -> Option<Status> {
         Err(_) => -1.0,
     };
     
-    let charging_icon = match on_ac_power() {
-        Ok(value) => if value { "⚡" } else { "🔋" },
-        Err(_) => "Err",
+    let charging = match on_ac_power() {
+        Ok(value) => value,
+        Err(_) => false,
     };
+
+    let charging_icon = if charging { "⚡" } else { "🔋" };
 
     return Some(Status {
         full_text: format!("{} {}%", charging_icon, battery_perc),
-        urgent: Some(battery_perc <= 15.0),
-        color:  if battery_perc <= 15.0 {
+        urgent: Some(battery_perc <= 15.0 && !charging),
+        color:  if charging {
+                    None
+                } else if battery_perc <= 15.0 {
                     Some("#FF0000".to_string())
                 } else if battery_perc <= 25.0 {
                     Some("#FF8C00".to_string())
@@ -181,8 +185,8 @@ fn volume() -> Option<Status> {
         }
     }
     let ret = match status {
-        "[on]" => format!("{}", volume),
-        "[off]" => format!("muted ({})", volume),
+        "[on]" => format!("🔊 {}", volume),
+        "[off]" => format!("🔇 ({})", volume),
         _ => status.to_string()
     };
     return Some( Status {
@@ -206,10 +210,10 @@ fn header() -> String {
 fn status() -> String {
     let mut statusses: Vec<Option<Status>> = vec![
         network(),
+        volume(),
         battery(),
         date(),
         time(),
-        volume(),
     ];
     statusses.retain(|ref x| x.is_some());
     json!(&statusses).to_string()
