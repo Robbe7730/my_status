@@ -121,6 +121,7 @@ fn battery() -> Option<Status> {
                 } else {
                     None
                 },
+        name: "battery".to_string(),
         ..Default::default()
     })
 }
@@ -129,6 +130,7 @@ fn time() -> Option<Status> {
     let now: DateTime<Local> = chrono::Local::now();
     return Some(Status {
         full_text: now.format("%R").to_string(),
+        name: "time".to_string(),
         ..Default::default()
     })
 }
@@ -137,6 +139,7 @@ fn date() -> Option<Status> {
     let now: DateTime<Local> = chrono::Local::now();
     return Some(Status {
         full_text: now.format("%a %e %b %Y").to_string(),
+        name: "date".to_string(),
         ..Default::default()
     })
 }
@@ -161,6 +164,7 @@ fn network() -> Option<Status> {
         "" => None,
         _ => Some( Status {
             full_text: format!("{} ({})", ssid, ip),
+            name: "network".to_string(),
             color: Some("#00FF00".to_string()),
             ..Default::default()
         }),
@@ -191,6 +195,7 @@ fn volume() -> Option<Status> {
     };
     return Some( Status {
         full_text: ret,
+        name: "volume".to_string(),
         color: match status {
             "[off]" => Some("#FFF000".to_string()),
             _ => None
@@ -232,6 +237,7 @@ fn playing() -> Option<Status> {
 
     return Some( Status {
         full_text: format!("{} {} - {}", status_icon, track_str, artist_str),
+        name: "playing".to_string(),
         ..Default::default()
     });
 }
@@ -239,6 +245,7 @@ fn playing() -> Option<Status> {
 fn header() -> String {
     let header = Header {
         version: 1,
+        click_events: Some(true),
         ..Default::default()
     };
     json!(&header).to_string()
