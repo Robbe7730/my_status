@@ -4,11 +4,8 @@ extern crate serde_json;
 
 #[macro_use]
 extern crate serde_derive;
-
-extern crate systemstat;
 extern crate chrono;
-extern crate libpulse_binding;
-extern crate wpactrl;
+extern crate systemstat;
 
 use std::time::Duration;
 use std::thread::sleep;
@@ -29,32 +26,26 @@ fn header() -> String {
     json!(&header).to_string()
 }
 
-fn status() -> String {
-    let date: Date = Date();
-    let time: Time = Time();
-    let battery: Battery = Battery();
-    let network: Network = Network();
-    let volume: Volume = Volume();
-    let playing: Playing = Playing();
-
-    let mut statusses: Vec<Option<Status>> = vec![
-        playing.get_status(),
-        network.get_status(),
-        volume.get_status(),
-        battery.get_status(),
-        date.get_status(),
-        time.get_status(),
-    ];
+fn status(modules_vec: &Vec<Box<StatusAble>>) -> String {
+    let mut statusses: Vec<Option<Status>> = modules_vec.into_iter().map(|module| module.get_status()).collect();
     statusses.retain(|ref x| x.is_some());
     json!(&statusses).to_string()
 }
 
 fn main() {
+    let modules_vec: Vec<Box<StatusAble>> = vec![
+        Box::new(Playing()),
+        Box::new(Network()),
+        Box::new(Volume()),
+        Box::new(Battery()),
+        Box::new(Date()),
+        Box::new(Time()),
+    ];
     let header: String = header();
     println!("{}", header);
     println!("[");
     loop {
-        let status: String = status();
+        let status: String = status(&modules_vec);
         println!("{},", status);
         sleep(Duration::from_millis(1000));
     }

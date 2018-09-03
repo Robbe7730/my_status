@@ -1,6 +1,4 @@
 pub mod date {
-    extern crate chrono;
-
     use chrono::prelude::{DateTime, Local};
     use utils::structs::Status;
     use utils::traits::StatusAble;
