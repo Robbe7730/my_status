@@ -30,14 +30,22 @@ pub mod playing {
                                 .arg("artist")
                                 .output()
                                 .expect("failed to execute process");
-            let artist_str = String::from_utf8_lossy(&artist.stdout).into_owned();
+            let mut artist_str = String::from_utf8_lossy(&artist.stdout).into_owned();
+
+            if artist_str == "" {
+                artist_str = "Unknown Artist".to_string()
+            }
 
             let track = Command::new("playerctl")
                                 .arg("metadata")
                                 .arg("title")
                                 .output()
                                 .expect("failed to execute process");
-            let track_str = String::from_utf8_lossy(&track.stdout).into_owned();
+            let mut track_str = String::from_utf8_lossy(&track.stdout).into_owned();
+
+            if track_str == "" {
+                track_str = "Unknown Track".to_string();
+            }
 
             return Some( Status {
                 full_text: format!("{} {} - {}", status_icon, track_str, artist_str),
