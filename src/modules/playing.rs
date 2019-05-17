@@ -1,58 +1,75 @@
 pub mod playing {
-    use std::process::Command;
-
     use utils::structs::Status;
     use utils::traits::StatusAble;
     use std::default::Default;
+    use mpris::{PlayerFinder, PlaybackStatus, LoopStatus};
 
     pub struct Playing();
 
+
     impl StatusAble for Playing {
         fn get_status(&self) -> Option<Status> {
-            let status = Command::new("playerctl")
-                        .arg("status")
-                        .output()
-                        .expect("failed to execute process");
-            let status_str = String::from_utf8_lossy(&status.stdout).into_owned();
-            
-            let status_icon;
+            let player_finder = PlayerFinder::new().unwrap();
 
-            if status_str == "Playing\n" {
-                status_icon = "⏵";
-            } else if status_str == "Paused\n" {
-                status_icon = "⏸";
+            let result_player = player_finder.find_active();
+            let player;
+
+            if result_player.is_err() {
+                eprintln!("result_player is err");
+                return None;
             } else {
-                return None
+                player = result_player.unwrap();
             }
 
-            let artist = Command::new("playerctl")
-                                .arg("metadata")
-                                .arg("artist")
-                                .output()
-                                .expect("failed to execute process");
-            let mut artist_str = String::from_utf8_lossy(&artist.stdout).into_owned();
+            let result_current_track_metadata = player.get_metadata();
+            let current_track_metadata;
 
-            if artist_str == "" {
-                artist_str = "Unknown Artist".to_string()
+            if result_current_track_metadata.is_err() {
+                eprintln!("result_current_track_metadata is err");
+                return None;
+            } else {
+                current_track_metadata = result_current_track_metadata.unwrap();
             }
 
-            artist_str = artist_str.trim_end_matches("\n").to_string();
+            let title = current_track_metadata.title().unwrap_or("unknown title");
+            let artists = current_track_metadata.artists().unwrap_or(vec!["unknown artist"]);
+            let artist_str = artists.join(",");
 
-            let track = Command::new("playerctl")
-                                .arg("metadata")
-                                .arg("title")
-                                .output()
-                                .expect("failed to execute process");
-            let mut track_str = String::from_utf8_lossy(&track.stdout).into_owned();
-
-            if track_str == "" {
-                track_str = "Unknown Track".to_string();
+            if (title == "unknown title" || title == "") && (artist_str == "unknown artist" || artist_str == "") {
+                return None;
             }
 
-            track_str = track_str.trim_end_matches("\n").to_string();
+            let result_playing = player.get_playback_status();
+            let playing;
+
+            if result_playing.is_err() {
+                eprintln!("result_playing is err");
+                return None;
+            } else {
+                playing = result_playing.unwrap();
+            }
+
+            let playing_str = match playing {
+                PlaybackStatus::Playing => "▶",
+                PlaybackStatus::Paused => "⏸",
+                PlaybackStatus::Stopped => "■",
+            };
+
+            let shuffle_str;
+            if player.get_shuffle().unwrap_or(false) {
+                shuffle_str = "🔀 ";
+            } else {
+                shuffle_str = "";
+            }
+
+            let loop_str = match player.get_loop_status().unwrap_or(LoopStatus::None) {
+                LoopStatus::None => "",
+                LoopStatus::Track => "🔂 ",
+                LoopStatus::Playlist => "🔁 ",
+            };
 
             return Some( Status {
-                full_text: format!("{} {} - {}", status_icon, track_str, artist_str),
+                full_text: format!("{}{}{} {} - {}", loop_str, shuffle_str, playing_str, title, artist_str),
                 name: "playing".to_string(),
                 ..Default::default()
             });

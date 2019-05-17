@@ -7,6 +7,7 @@ extern crate serde_derive;
 extern crate chrono;
 extern crate systemstat;
 extern crate blurz;
+extern crate mpris;
 
 use std::time::Duration;
 use std::thread::sleep;
