@@ -36,6 +36,8 @@ pub mod playing {
                 artist_str = "Unknown Artist".to_string()
             }
 
+            artist_str = artist_str.trim_end_matches("\n").to_string();
+
             let track = Command::new("playerctl")
                                 .arg("metadata")
                                 .arg("title")
@@ -46,6 +48,8 @@ pub mod playing {
             if track_str == "" {
                 track_str = "Unknown Track".to_string();
             }
+
+            track_str = track_str.trim_end_matches("\n").to_string();
 
             return Some( Status {
                 full_text: format!("{} {} - {}", status_icon, track_str, artist_str),

@@ -6,6 +6,7 @@ extern crate serde_json;
 extern crate serde_derive;
 extern crate chrono;
 extern crate systemstat;
+extern crate blurz;
 
 use std::time::Duration;
 use std::thread::sleep;
@@ -36,6 +37,7 @@ fn main() {
     let modules_vec: Vec<Box<StatusAble>> = vec![
         Box::new(Playing()),
         Box::new(Network()),
+        Box::new(Bluetooth()),
         Box::new(Volume()),
         Box::new(Battery()),
         Box::new(Date()),

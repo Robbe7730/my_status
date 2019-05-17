@@ -50,7 +50,7 @@ pub mod battery {
 
     fn value_from_file<T: str::FromStr>(path: &str) -> io::Result<T> {
         try!(read_file(path))
-            .trim_right_matches("\n")
+            .trim_end_matches("\n")
             .parse()
             .and_then(|n| Ok(n))
             .or_else(|_| {
