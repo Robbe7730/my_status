@@ -15,7 +15,7 @@ pub mod playing {
             let player;
 
             if result_player.is_err() {
-                eprintln!("result_player is err");
+                // eprintln!("result_player is err");
                 return None;
             } else {
                 player = result_player.unwrap();
@@ -25,7 +25,7 @@ pub mod playing {
             let current_track_metadata;
 
             if result_current_track_metadata.is_err() {
-                eprintln!("result_current_track_metadata is err");
+                // eprintln!("result_current_track_metadata is err");
                 return None;
             } else {
                 current_track_metadata = result_current_track_metadata.unwrap();
@@ -43,7 +43,7 @@ pub mod playing {
             let playing;
 
             if result_playing.is_err() {
-                eprintln!("result_playing is err");
+                // eprintln!("result_playing is err");
                 return None;
             } else {
                 playing = result_playing.unwrap();
