@@ -10,7 +10,7 @@ pub mod battery {
 
     impl StatusAble for Battery {
         fn get_status(&self) -> Option<Status> {
-                    let sys = System::new();
+        let sys = System::new();
         let battery_perc = match sys.battery_life() {
             Ok(battery) =>  (battery.remaining_capacity*100.0).round(),
             Err(_) => -1.0,
@@ -26,7 +26,7 @@ pub mod battery {
         return Some(Status {
             full_text: format!("{} {}%", charging_icon, battery_perc),
             urgent: Some(battery_perc <= 15.0 && !charging),
-            color:  if charging {
+            color:  if charging || battery_perc < 0.0 {
                         None
                     } else if battery_perc <= 15.0 {
                         Some("#FF0000".to_string())
@@ -60,7 +60,7 @@ pub mod battery {
     }
 
     fn on_ac_power() -> io::Result<bool> {
-        value_from_file::<i32>("/sys/class/power_supply/AC0/online").map(|v| v == 1)
+        value_from_file::<i32>("/sys/class/power_supply/AC/online").map(|v| v == 1)
     }
 
 }

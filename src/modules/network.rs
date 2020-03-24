@@ -11,6 +11,7 @@ pub mod network {
         fn get_status(&self) -> Option<Status> {
             let output = Command::new("wpa_cli")
                         .arg("status")
+                        .arg("-iwlo1")
                         .output()
                         .expect("failed to execute process");
             let out = String::from_utf8_lossy(&output.stdout);
