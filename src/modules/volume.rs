@@ -18,9 +18,9 @@ pub mod volume {
             let mut volume = "Err".to_string();
             let mut status = "Err";
             for line in out.lines() {
-                if line.starts_with("  Mono") {
+                if line.starts_with("  Front") {
                     let linesplit: Vec<&str> = line.split(" ").collect();
-                    volume = linesplit[5][1..].to_string();
+                    volume = linesplit[6][1..].to_string();
                     status = &linesplit[7];
                     volume.pop();
                 }
