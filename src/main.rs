@@ -36,6 +36,7 @@ fn status(modules_vec: &Vec<Box<StatusAble>>) -> String {
 
 fn main() {
     let modules_vec: Vec<Box<StatusAble>> = vec![
+        Box::new(Watson()),
         Box::new(Playing()),
         Box::new(Network()),
         Box::new(Bluetooth()),
