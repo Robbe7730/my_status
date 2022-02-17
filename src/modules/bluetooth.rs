@@ -32,11 +32,12 @@ pub mod bluetooth {
             // https://standards.freedesktop.org/icon-naming-spec/icon-naming-spec-latest.html
             let dev_icon_disp = match dev_icon.as_ref() {
                 "audio-card"              => format!("🎧"),
+                "audio-headset"              => format!("🎧"),
                 "audio-input-microphone	" => format!("🎤"),
                 "battery"                 => format!("🔋"),
                 "camera-photo"            => format!("📷"),
                 "camera-video"            => format!("🎥"),
-                "camera_web"              => format!("📷"),
+                "camera-web"              => format!("📷"),
                 "computer"                => format!("💻"),
                 "drive-harddisk"          => format!("🖴"),
                 "drive-optical"           => format!("💿"),
