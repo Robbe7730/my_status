@@ -20,6 +20,7 @@ impl StatusLineIterator {
         Self {
             modules: vec![
                 Box::new(modules::BatteryModule::new()),
+                Box::new(modules::DateTimeModule::new()),
             ]
         }
     }
