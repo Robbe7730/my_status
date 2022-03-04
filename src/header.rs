@@ -1,13 +1,17 @@
 use crate::config::StatusBarConfig;
 
-pub struct StartIterator {
+pub struct Header {
     config: Option<StatusBarConfig>
 }
 
-impl Iterator for StartIterator {
-    type Item = String;
+impl Header {
+    pub fn new() -> Self {
+        Self {
+            config: Some(StatusBarConfig::new(1, None, None, None))
+        }
+    }
 
-    fn next(&mut self) -> Option<String> {
+    pub fn get_value(&mut self) -> Option<String> {
         if let Some(config) = &self.config {
             let ret = format!(
                 "{}\n[",
@@ -17,14 +21,6 @@ impl Iterator for StartIterator {
             Some(ret)
         } else {
             None
-        }
-    }
-}
-
-impl StartIterator {
-    pub fn new() -> Self {
-        Self {
-            config: Some(StatusBarConfig::new(1, None, None, None))
         }
     }
 }

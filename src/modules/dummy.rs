@@ -1,9 +1,12 @@
 use super::{Module, StatusBlock};
 
+use async_trait::async_trait;
+
 pub struct DummyModule {}
 
+#[async_trait(?Send)]
 impl Module for DummyModule {
-    fn get_blocks(&self) -> Vec<StatusBlock> {
+    async fn get_blocks(&self) -> Vec<StatusBlock> {
         vec![
             StatusBlock::new("dummy", "Hello world!")
                 .with_instance("hello-world"),

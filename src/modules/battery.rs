@@ -2,12 +2,15 @@ use super::{Module, StatusBlock};
 
 use battery::{Manager, State};
 
+use async_trait::async_trait;
+
 pub struct BatteryModule {
     manager: Manager,
 }
 
+#[async_trait(?Send)]
 impl Module for BatteryModule {
-    fn get_blocks(&self) -> Vec<StatusBlock> {
+    async fn get_blocks(&self) -> Vec<StatusBlock> {
         match self.manager.batteries().unwrap().next() {
             Some(Ok(battery)) => {
                 let charging = battery.state() == State::Charging;

@@ -1,10 +1,13 @@
 use super::{Module, StatusBlock};
 use chrono::Local;
 
+use async_trait::async_trait;
+
 pub struct DateTimeModule {}
 
+#[async_trait(?Send)]
 impl Module for DateTimeModule {
-    fn get_blocks(&self) -> Vec<StatusBlock> {
+    async fn get_blocks(&self) -> Vec<StatusBlock> {
         let now = Local::now();
         vec![
             StatusBlock::new(

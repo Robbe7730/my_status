@@ -1,24 +1,21 @@
 mod modules;
-mod start_iterator;
+mod header;
 mod config;
-mod status_line_iterator;
+mod status_lines;
 
-use start_iterator::StartIterator;
-use status_line_iterator::StatusLineIterator;
+use header::Header;
+use status_lines::StatusLines;
 
 use std::time::Duration;
 use std::thread::sleep;
 
-fn main() {
-    let start_iter = StartIterator::new();
-    let status_line_iter = StatusLineIterator::new().map(|x| format!(
-        "{},",
-        serde_json::to_string(&x).unwrap()
-    ));
-    let lines_iter = start_iter.chain(status_line_iter);
-
-    for line in lines_iter {
-        println!("{}", line);
+#[tokio::main]
+async fn main() {
+    println!("{}", Header::new().get_value().unwrap());
+    let mut lines = StatusLines::new();
+    loop {
+        let line = lines.next().await.unwrap();
+        println!("{},", serde_json::to_string(&line).unwrap());
         sleep(Duration::from_secs(1));
     }
 }
