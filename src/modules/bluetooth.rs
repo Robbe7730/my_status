@@ -7,11 +7,14 @@ use async_trait::async_trait;
 use btleplug::platform::{Manager, Adapter};
 use btleplug::api::{Manager as _, Central, CentralEvent, Peripheral};
 
+use uuid::Uuid;
+
 use futures::StreamExt;
 
 pub struct BluetoothDevice {
     name: Option<String>,
     mac: String,
+    icon: Option<String>,
 }
 
 pub struct BluetoothModule {
@@ -25,8 +28,16 @@ impl Module for BluetoothModule {
         let mut ret = vec![];
         let devices = self.devices.lock().unwrap();
         for device in devices.iter() {
-            let display_name = device.name.as_ref().unwrap_or(&device.mac);
-            ret.push(StatusBlock::new("bluetooth", &display_name));
+            let mut display_name = device.name.as_ref().unwrap_or(&device.mac).to_string();
+
+            if let Some(icon) = &device.icon {
+                display_name = format!("{} {}", icon, display_name);
+            }
+
+            ret.push(
+                StatusBlock::new("bluetooth", &display_name)
+                    .with_instance(&device.mac)
+            );
         }
 
         ret
@@ -61,13 +72,26 @@ impl BluetoothModule {
     }
 
     pub async fn get_devices(devices: Arc<Mutex<Vec<BluetoothDevice>>>, central: &Adapter) {
+        let heartrate_uuid = Uuid::parse_str("0000180d-0000-1000-8000-00805f9b34fb").unwrap();
         let mut new_devices = vec![];
         for peripheral in central.peripherals().await.unwrap() {
             if peripheral.is_connected().await.unwrap() {
                 let properties = peripheral.properties().await.unwrap().unwrap();
+
+                let mut icon = None;
+
+                peripheral.discover_services().await.unwrap();
+
+                for service in peripheral.services() {
+                    if service.uuid == heartrate_uuid {
+                        icon = Some("💓".to_string());
+                    }
+                }
+
                 new_devices.push(BluetoothDevice {
                     name: properties.local_name,
                     mac: peripheral.address().to_string(),
+                    icon,
                 });
             }
         }
