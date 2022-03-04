@@ -1,7 +1,5 @@
 use serde::Serialize;
 
-type Color = String;
-
 #[allow(dead_code)]
 #[derive(Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -28,11 +26,11 @@ pub struct StatusBlock {
     short_text: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    color: Option<Color>,
+    color: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    background: Option<Color>,
+    background: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    border: Option<Color>,
+    border: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     border_top: Option<usize>,
@@ -96,6 +94,11 @@ impl StatusBlock {
 
     pub fn with_instance(mut self, instance: &str) -> Self {
         self.instance = Some(instance.to_owned());
+        self
+    }
+
+    pub fn with_color(mut self, color: &str) -> Self {
+        self.color = Some(color.to_owned());
         self
     }
 }

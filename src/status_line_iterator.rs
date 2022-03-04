@@ -19,7 +19,7 @@ impl StatusLineIterator {
     pub fn new() -> Self {
         Self {
             modules: vec![
-                Box::new(modules::DummyModule::new()),
+                Box::new(modules::BatteryModule::new()),
             ]
         }
     }

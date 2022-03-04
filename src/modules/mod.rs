@@ -1,6 +1,8 @@
 mod dummy;
+mod battery;
 
 pub use dummy::DummyModule;
+pub use self::battery::BatteryModule;
 
 pub mod status_block;
 
