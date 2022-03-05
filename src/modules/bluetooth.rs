@@ -1,24 +1,28 @@
 use super::{Module, StatusBlock};
 
 use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
 
 use async_trait::async_trait;
 
-use btleplug::platform::{Manager, Adapter};
+use btleplug::platform::{Manager, PeripheralId};
 use btleplug::api::{Manager as _, Central, CentralEvent, Peripheral};
 
-use uuid::Uuid;
-
 use futures::StreamExt;
+
+pub enum BluetoothDeviceAttribute {
+    BatteryLevel(Option<u8>),
+}
 
 pub struct BluetoothDevice {
     name: Option<String>,
     mac: String,
     icon: Option<String>,
+    attributes: Vec<BluetoothDeviceAttribute>,
 }
 
 pub struct BluetoothModule {
-    devices: Arc<Mutex<Vec<BluetoothDevice>>>,
+    devices: Arc<Mutex<HashMap<PeripheralId, BluetoothDevice>>>,
 }
 
 #[async_trait(?Send)]
@@ -27,11 +31,22 @@ impl Module for BluetoothModule {
 
         let mut ret = vec![];
         let devices = self.devices.lock().unwrap();
-        for device in devices.iter() {
+        for device in devices.values() {
             let mut display_name = device.name.as_ref().unwrap_or(&device.mac).to_string();
 
             if let Some(icon) = &device.icon {
                 display_name = format!("{} {}", icon, display_name);
+            }
+
+            let attributes = device.attributes.iter().map(|attribute| {
+                match attribute {
+                    BluetoothDeviceAttribute::BatteryLevel(None) => format!("🔋 ??%"),
+                    BluetoothDeviceAttribute::BatteryLevel(Some(r)) => format!("🔋 {}%", r),
+                }
+            }).collect::<Vec<String>>().join(", ");
+
+            if attributes.len() > 0 {
+                display_name = format!("{} ({})", display_name, attributes);
             }
 
             ret.push(
@@ -46,7 +61,7 @@ impl Module for BluetoothModule {
 
 impl BluetoothModule {
     pub fn new() -> Self {
-        let devices = Arc::new(Mutex::new(vec![]));
+        let devices = Arc::new(Mutex::new(HashMap::new()));
         let ret = Self {
             devices: devices.clone(),
         };
@@ -59,9 +74,40 @@ impl BluetoothModule {
 
             while let Some(event) = events.next().await {
                 match event {
-                    CentralEvent::DeviceConnected(_) |
-                    CentralEvent::DeviceDisconnected(_) => {
-                        Self::get_devices(devices.clone(), &central).await;
+                    CentralEvent::DeviceConnected(id) => {
+                        let peripheral = central.peripheral(&id).await.unwrap();
+
+                        peripheral.discover_services().await.unwrap();
+
+                        let properties = peripheral.properties().await.unwrap().unwrap();
+
+                        let mut attributes = vec![];
+
+                        for characteristic in peripheral.characteristics() {
+                            let attribute = match characteristic.uuid.as_u128() {
+                                0x00002a19_0000_1000_8000_00805f9b34fb =>
+                                    Some(BluetoothDeviceAttribute::BatteryLevel(
+                                        peripheral.read(&characteristic).await.ok().map(|x| x[0])
+                                    )),
+                                _ => None
+                            };
+
+                            if let Some(attr) = attribute {
+                                attributes.push(attr);
+                            }
+                        }
+
+                        let device = BluetoothDevice {
+                            name: properties.local_name,
+                            mac: properties.address.to_string(),
+                            icon: None,
+                            attributes,
+                        };
+
+                        devices.clone().lock().unwrap().insert(id, device);
+                    }
+                    CentralEvent::DeviceDisconnected(id) => {
+                        devices.clone().lock().unwrap().remove(&id);
                     }
                     _ => {}
                 }
@@ -69,33 +115,5 @@ impl BluetoothModule {
         });
 
         ret
-    }
-
-    pub async fn get_devices(devices: Arc<Mutex<Vec<BluetoothDevice>>>, central: &Adapter) {
-        let heartrate_uuid = Uuid::parse_str("0000180d-0000-1000-8000-00805f9b34fb").unwrap();
-        let mut new_devices = vec![];
-        for peripheral in central.peripherals().await.unwrap() {
-            if peripheral.is_connected().await.unwrap() {
-                let properties = peripheral.properties().await.unwrap().unwrap();
-
-                let mut icon = None;
-
-                peripheral.discover_services().await.unwrap();
-
-                for service in peripheral.services() {
-                    if service.uuid == heartrate_uuid {
-                        icon = Some("💓".to_string());
-                    }
-                }
-
-                new_devices.push(BluetoothDevice {
-                    name: properties.local_name,
-                    mac: peripheral.address().to_string(),
-                    icon,
-                });
-            }
-        }
-        let mut devices_lock = devices.lock().unwrap();
-        *devices_lock = new_devices;
     }
 }
