@@ -18,6 +18,8 @@ impl Module for DummyModule {
 }
 
 impl DummyModule {
+    // This is an example module, it is ok to be unused
+    #[allow(dead_code)]
     pub fn new() -> Self {
         DummyModule {}
     }
