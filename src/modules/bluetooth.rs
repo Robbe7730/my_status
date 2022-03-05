@@ -19,7 +19,6 @@ pub enum BluetoothDeviceAttribute {
 pub struct BluetoothDevice {
     name: Option<String>,
     mac: String,
-    icon: Option<String>,
     attributes: Vec<BluetoothDeviceAttribute>,
 }
 
@@ -61,10 +60,6 @@ impl Module for BluetoothModule {
         let devices = self.devices.lock().unwrap();
         for device in devices.values() {
             let mut display_name = device.name.as_ref().unwrap_or(&device.mac).to_string();
-
-            if let Some(icon) = &device.icon {
-                display_name = format!("{} {}", icon, display_name);
-            }
 
             let attributes = device.attributes.iter().map(|attribute| {
                 match attribute {
@@ -149,7 +144,6 @@ impl BluetoothModule {
                         let device = BluetoothDevice {
                             name: properties.local_name,
                             mac: properties.address.to_string(),
-                            icon: None,
                             attributes,
                         };
 
