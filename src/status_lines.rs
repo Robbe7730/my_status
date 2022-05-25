@@ -11,6 +11,7 @@ impl StatusLines {
     pub fn new() -> Self {
         Self {
             modules: vec![
+                Box::new(modules::PlayingModule::new()),
                 Box::new(modules::BluetoothModule::new()),
                 Box::new(modules::NetworkModule::new()),
                 Box::new(modules::BatteryModule::new()),

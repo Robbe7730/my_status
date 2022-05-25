@@ -10,6 +10,7 @@ pub use self::battery::BatteryModule;
 pub use datetime::DateTimeModule;
 pub use bluetooth::BluetoothModule;
 pub use network::NetworkModule;
+pub use playing::PlayingModule;
 
 pub mod status_block;
 
