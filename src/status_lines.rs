@@ -12,6 +12,7 @@ impl StatusLines {
         Self {
             modules: vec![
                 Box::new(modules::BluetoothModule::new()),
+                Box::new(modules::NetworkModule::new()),
                 Box::new(modules::BatteryModule::new()),
                 Box::new(modules::DateTimeModule::new()),
             ]

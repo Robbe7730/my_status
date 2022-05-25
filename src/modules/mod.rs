@@ -2,11 +2,14 @@ mod dummy;
 mod battery;
 mod datetime;
 mod bluetooth;
+mod network;
+mod playing;
 
 pub use dummy::DummyModule;
 pub use self::battery::BatteryModule;
 pub use datetime::DateTimeModule;
 pub use bluetooth::BluetoothModule;
+pub use network::NetworkModule;
 
 pub mod status_block;
 
