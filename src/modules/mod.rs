@@ -1,17 +1,24 @@
-mod date;
-mod time;
+mod dummy;
 mod battery;
-mod network;
-mod volume;
-mod watson;
-mod playing;
+mod datetime;
 mod bluetooth;
+mod network;
+mod playing;
 
-pub use modules::date::date::Date as Date;
-pub use modules::time::time::Time as Time;
-pub use modules::battery::battery::Battery as Battery;
-pub use modules::network::network::Network as Network;
-pub use modules::volume::volume::Volume as Volume;
-pub use modules::playing::playing::Playing as Playing;
-pub use modules::bluetooth::bluetooth::Bluetooth as Bluetooth;
-pub use modules::watson::watson::Watson as Watson;
+pub use dummy::DummyModule;
+pub use self::battery::BatteryModule;
+pub use datetime::DateTimeModule;
+pub use bluetooth::BluetoothModule;
+pub use network::NetworkModule;
+pub use playing::PlayingModule;
+
+pub mod status_block;
+
+use async_trait::async_trait;
+
+use status_block::StatusBlock;
+
+#[async_trait(?Send)]
+pub trait Module {
+    async fn get_blocks(&self) -> Vec<StatusBlock>;
+}

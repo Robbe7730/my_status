@@ -1,78 +1,127 @@
-pub mod playing {
-    use utils::structs::Status;
-    use utils::traits::StatusAble;
-    use std::default::Default;
-    use mpris::{PlayerFinder, PlaybackStatus, LoopStatus};
+use super::{Module, StatusBlock};
 
-    pub struct Playing();
+use dbus::blocking::Connection;
+use dbus::blocking::stdintf::org_freedesktop_dbus::Properties;
+use dbus::arg::PropMap;
+use dbus::arg;
 
+use std::time::Duration;
 
-    impl StatusAble for Playing {
-        fn get_status(&self) -> Option<Status> {
-            let player_finder = PlayerFinder::new().unwrap();
+use async_trait::async_trait;
 
-            let result_player = player_finder.find_active();
-            let player;
+enum PlaybackStatus {
+    Playing,
+    Paused,
+    Stopped
+}
 
-            if result_player.is_err() {
-                // eprintln!("result_player is err");
-                return None;
-            } else {
-                player = result_player.unwrap();
-            }
-
-            let result_current_track_metadata = player.get_metadata();
-            let current_track_metadata;
-
-            if result_current_track_metadata.is_err() {
-                // eprintln!("result_current_track_metadata is err");
-                return None;
-            } else {
-                current_track_metadata = result_current_track_metadata.unwrap();
-            }
-
-            let title = current_track_metadata.title().unwrap_or("unknown title");
-            let artists = current_track_metadata.artists().unwrap_or(vec!["unknown artist"]);
-            let artist_str = artists.join(",");
-
-            if (title == "unknown title" || title == "") && (artist_str == "unknown artist" || artist_str == "") {
-                return None;
-            }
-
-            let result_playing = player.get_playback_status();
-            let playing;
-
-            if result_playing.is_err() {
-                // eprintln!("result_playing is err");
-                return None;
-            } else {
-                playing = result_playing.unwrap();
-            }
-
-            let playing_str = match playing {
-                PlaybackStatus::Playing => "▶",
-                PlaybackStatus::Paused => "⏸",
-                PlaybackStatus::Stopped => "■",
-            };
-
-            let shuffle_str;
-            if player.get_shuffle().unwrap_or(false) {
-                shuffle_str = "🔀 ";
-            } else {
-                shuffle_str = "";
-            }
-
-            let loop_str = match player.get_loop_status().unwrap_or(LoopStatus::None) {
-                LoopStatus::None => "",
-                LoopStatus::Track => "🔂 ",
-                LoopStatus::Playlist => "🔁 ",
-            };
-
-            return Some( Status {
-                full_text: format!("{}{}{} {} - {}", loop_str, shuffle_str, playing_str, title, artist_str),
-                name: "playing".to_string(),
-                ..Default::default()
-            });
+impl From<String> for PlaybackStatus {
+    fn from(s: String) -> PlaybackStatus {
+        match s.as_str() {
+            "Playing" => PlaybackStatus::Playing,
+            "Paused" => PlaybackStatus::Paused,
+            _ => PlaybackStatus::Stopped,
         }
+    }
+}
+
+impl PlaybackStatus {
+    fn icon(self) -> String {
+        match self {
+            PlaybackStatus::Playing => "▶".to_string(),
+            PlaybackStatus::Paused => "⏸︎".to_string(),
+            PlaybackStatus::Stopped => "⏹".to_string(),
+        }
+    }
+}
+
+pub struct PlayingModule {
+    conn: Connection,
+}
+
+#[async_trait(?Send)]
+impl Module for PlayingModule {
+    async fn get_blocks(&self) -> Vec<StatusBlock> {
+        let playerctl_proxy = self.conn.with_proxy(
+            "org.mpris.MediaPlayer2.playerctld",
+            "/org/mpris/MediaPlayer2",
+            Duration::from_secs(1)
+        );
+
+        let players: Vec<String> = playerctl_proxy.get(
+            "com.github.altdesktop.playerctld",
+            "PlayerNames"
+        ).unwrap();
+
+        let mut ret = vec![];
+
+        for player in players {
+            ret.push(
+                self.status_block_for_player(player)
+            );
+        }
+
+        ret
+    }
+}
+
+impl PlayingModule {
+    pub fn new() -> Self {
+        PlayingModule {
+            conn: Connection::new_session().unwrap(),
+        }
+    }
+
+    fn status_block_for_player(&self, player: String) -> StatusBlock {
+        let player_proxy = self.conn.with_proxy(
+            &player,
+            "/org/mpris/MediaPlayer2",
+            Duration::from_secs(1)
+        );
+
+        let identity: String = player_proxy.get(
+            "org.mpris.MediaPlayer2",
+            "Identity"
+        ).unwrap();
+
+        let playbackstatus: PlaybackStatus = PlaybackStatus::from(
+            player_proxy.get(
+                "org.mpris.MediaPlayer2.Player",
+                "PlaybackStatus"
+            ).unwrap_or(format!("Stopped"))
+        );
+        
+        let metadata: PropMap =  player_proxy.get(
+            "org.mpris.MediaPlayer2.Player",
+            "Metadata"
+        ).unwrap();
+
+        let maybe_title: Option<&String> = arg::prop_cast(&metadata, "xesam:title");
+        let maybe_artists: Option<&Vec<String>> = arg::prop_cast(&metadata, "xesam:artist");
+
+        let content;
+        
+        if let Some(title) = maybe_title {
+            if let Some(artists) = maybe_artists {
+                if artists.len() == 0 {
+                    content = title.to_string();
+                } else {
+                    content = format!("{} - {}", title, artists.join(","))
+                }
+            } else {
+                content = title.to_string();
+            }
+        } else {
+            content = identity.to_string();
+        }
+
+        let display = format!(
+            "{} {}",
+            playbackstatus.icon(),
+            content,
+        );
+
+        StatusBlock::new("playing", &display)
+            .with_instance(&identity)
     }
 }
