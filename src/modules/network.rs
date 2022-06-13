@@ -1,4 +1,4 @@
-use super::{Module, StatusBlock};
+use super::{Module, StatusBlock, ModuleResult};
 
 use socket2::{Socket, Domain, Type, SockAddr};
 
@@ -83,18 +83,18 @@ impl WpaData {
 
 #[async_trait(?Send)]
 impl Module for NetworkModule {
-    async fn get_blocks(&self) -> Vec<StatusBlock> {
+    async fn get_blocks(&self) -> ModuleResult {
         let mut ret = vec![];
 
         for (i, mut socket) in self.sockets.iter().enumerate() {
-            socket.send(b"STATUS").unwrap();
+            socket.send(b"STATUS")?;
             
             let mut response = String::new();
 
             let mut buf = vec![0; 1024];
-            socket.read(&mut buf).unwrap();
+            socket.read(&mut buf)?;
             buf.retain(|x| *x != 0);
-            response.push_str(str::from_utf8(&buf).unwrap());
+            response.push_str(str::from_utf8(&buf)?);
 
             let mut data = WpaData {
                 state: WpaState::Unknown,
@@ -109,7 +109,7 @@ impl Module for NetworkModule {
 
                 if maybe_value.is_none() {
                     eprintln!("No value for {}", key);
-                    return vec![];
+                    return Ok(vec![]);
                 }
 
                 let value = maybe_value.unwrap();
@@ -133,7 +133,7 @@ impl Module for NetworkModule {
             );
         }
 
-        ret
+        Ok(ret)
     }
 }
 

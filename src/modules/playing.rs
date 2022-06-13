@@ -1,4 +1,4 @@
-use super::{Module, StatusBlock};
+use super::{Module, StatusBlock, ModuleResult};
 
 use dbus::blocking::Connection;
 use dbus::blocking::stdintf::org_freedesktop_dbus::Properties;
@@ -41,7 +41,7 @@ pub struct PlayingModule {
 
 #[async_trait(?Send)]
 impl Module for PlayingModule {
-    async fn get_blocks(&self) -> Vec<StatusBlock> {
+    async fn get_blocks(&self) -> ModuleResult {
         let playerctl_proxy = self.conn.with_proxy(
             "org.mpris.MediaPlayer2.playerctld",
             "/org/mpris/MediaPlayer2",
@@ -51,7 +51,7 @@ impl Module for PlayingModule {
         let players: Vec<String> = playerctl_proxy.get(
             "com.github.altdesktop.playerctld",
             "PlayerNames"
-        ).unwrap();
+        )?;
 
         let mut ret = vec![];
 
@@ -61,7 +61,7 @@ impl Module for PlayingModule {
             );
         }
 
-        ret
+        Ok(ret)
     }
 }
 

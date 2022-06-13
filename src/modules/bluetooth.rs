@@ -1,4 +1,4 @@
-use super::{Module, StatusBlock};
+use super::{Module, StatusBlock, ModuleResult, ModuleError};
 
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
@@ -54,10 +54,10 @@ pub struct BluetoothModule {
 
 #[async_trait(?Send)]
 impl Module for BluetoothModule {
-    async fn get_blocks(&self) -> Vec<StatusBlock> {
+    async fn get_blocks(&self) -> ModuleResult {
 
         let mut ret = vec![];
-        let devices = self.devices.lock().unwrap();
+        let devices = self.devices.lock().map_err(|x| ModuleError::from(x))?;
         for device in devices.values() {
             let mut display_name = device.name.as_ref().unwrap_or(&device.mac).to_string();
 
@@ -80,7 +80,7 @@ impl Module for BluetoothModule {
             );
         }
 
-        ret
+        Ok(ret)
     }
 }
 

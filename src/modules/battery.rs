@@ -1,4 +1,4 @@
-use super::{Module, StatusBlock};
+use super::{Module, StatusBlock, ModuleResult};
 
 use battery::{Manager, State};
 
@@ -10,8 +10,8 @@ pub struct BatteryModule {
 
 #[async_trait(?Send)]
 impl Module for BatteryModule {
-    async fn get_blocks(&self) -> Vec<StatusBlock> {
-        match self.manager.batteries().unwrap().next() {
+    async fn get_blocks(&self) -> ModuleResult {
+        Ok(match self.manager.batteries()?.next() {
             Some(Ok(battery)) => {
                 let charging = battery.state() == State::Charging;
                 let percentage: f32 = (battery.state_of_charge() * 100.0).into();
@@ -30,7 +30,7 @@ impl Module for BatteryModule {
                 ]
             },
             _ => vec![]
-        }
+        })
     }
 }
 

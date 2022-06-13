@@ -1,4 +1,4 @@
-use super::{Module, StatusBlock};
+use super::{Module, StatusBlock, ModuleResult};
 
 use async_trait::async_trait;
 
@@ -6,14 +6,14 @@ pub struct DummyModule {}
 
 #[async_trait(?Send)]
 impl Module for DummyModule {
-    async fn get_blocks(&self) -> Vec<StatusBlock> {
-        vec![
+    async fn get_blocks(&self) -> ModuleResult {
+        Ok(vec![
             StatusBlock::new("dummy", "Hello world!")
                 .with_instance("hello-world"),
             StatusBlock::new("dummy", "Urgent!")
                 .with_instance("urgent")
                 .with_urgent(true)
-        ]
+        ])
     }
 }
 
