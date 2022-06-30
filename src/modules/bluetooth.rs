@@ -24,6 +24,8 @@ pub struct BluetoothDevice {
 
 impl BluetoothDevice {
     pub fn handle_notification(&mut self, notification: ValueNotification) {
+        // The single_match is ok as I intend on adding more attributes
+        #[allow(clippy::single_match)]
         match notification.uuid.as_u128() {
             0x00002a37_0000_1000_8000_00805f9b34fb => {
                 let flags = notification.value[0];
@@ -57,20 +59,20 @@ impl Module for BluetoothModule {
     async fn get_blocks(&self) -> ModuleResult {
 
         let mut ret = vec![];
-        let devices = self.devices.lock().map_err(|x| ModuleError::from(x))?;
+        let devices = self.devices.lock().map_err(ModuleError::from)?;
         for device in devices.values() {
             let mut display_name = device.name.as_ref().unwrap_or(&device.mac).to_string();
 
             let attributes = device.attributes.iter().map(|attribute| {
                 match attribute {
-                    BluetoothDeviceAttribute::Heartrate(None) => format!("💓 ??"),
+                    BluetoothDeviceAttribute::Heartrate(None) => "💓 ??".to_string(),
                     BluetoothDeviceAttribute::Heartrate(Some(r)) => format!("💓 {}", r),
-                    BluetoothDeviceAttribute::BatteryLevel(None) => format!("🔋 ??%"),
+                    BluetoothDeviceAttribute::BatteryLevel(None) => "🔋 ??%".to_string(),
                     BluetoothDeviceAttribute::BatteryLevel(Some(r)) => format!("🔋 {}%", r),
                 }
             }).collect::<Vec<String>>().join(", ");
 
-            if attributes.len() > 0 {
+            if !attributes.is_empty() {
                 display_name = format!("{} ({})", display_name, attributes);
             }
 
@@ -94,7 +96,7 @@ impl BluetoothModule {
         tokio::spawn(async move {
             let manager = Manager::new().await.unwrap();
             let adapters = manager.adapters().await.unwrap();
-            let central = adapters.into_iter().nth(0).unwrap();
+            let central = adapters.into_iter().next().unwrap();
             let mut events = central.events().await.unwrap();
 
             while let Some(event) = events.next().await {

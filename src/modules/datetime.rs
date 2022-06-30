@@ -11,11 +11,11 @@ impl Module for DateTimeModule {
         let now = Local::now();
         Ok(vec![
             StatusBlock::new(
-                "datetime", 
+                "datetime",
                 &now.format("%a %e %b %Y").to_string()
             ).with_instance("date"),
             StatusBlock::new(
-                "datetime", 
+                "datetime",
                 &now.format("%R").to_string()
             ).with_instance("time")
         ])

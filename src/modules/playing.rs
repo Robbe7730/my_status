@@ -57,7 +57,7 @@ impl Module for PlayingModule {
 
         for player in players {
             let res = self.status_block_for_player(player);
-    
+
             match res {
                 Ok(sb) => ret.push(sb),
                 Err(e) => {
@@ -94,7 +94,7 @@ impl PlayingModule {
             player_proxy.get(
                 "org.mpris.MediaPlayer2.Player",
                 "PlaybackStatus"
-            ).unwrap_or(format!("Stopped"))
+            ).unwrap_or_else(|_| "Stopped".to_string())
         );
 
         let metadata: PropMap =  player_proxy.get(
@@ -109,7 +109,7 @@ impl PlayingModule {
 
         if let Some(title) = maybe_title {
             if let Some(artists) = maybe_artists {
-                if artists.len() == 0 {
+                if artists.is_empty() {
                     content = title.to_string();
                 } else {
                     content = format!("{} - {}", title, artists.join(","))

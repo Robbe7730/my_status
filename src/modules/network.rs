@@ -6,6 +6,7 @@ use std::io::Read;
 use std::process::id;
 use std::str;
 use std::fs;
+use std::fmt::{self, Display};
 
 use async_trait::async_trait;
 
@@ -48,15 +49,6 @@ impl From<&str> for WpaState {
     }
 }
 
-impl WpaState {
-    pub fn icon(&self) -> String {
-        format!("{}", match self {
-            WpaState::Completed => "📶",
-            _ => "?",
-        })
-    }
-}
-
 #[derive(Debug)]
 pub struct WpaData {
     state: WpaState,
@@ -64,21 +56,19 @@ pub struct WpaData {
     ip_addr: Option<String>,
 }
 
-impl WpaData {
-    fn to_string(&self) -> String {
-        let mut ret = format!(
+impl Display for WpaData {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
             "{}",
-            self.ssid.as_ref().unwrap_or(&format!("no ssid"))
-        );
+            self.ssid.as_ref().unwrap_or(&"no ssid".to_string())
+        )?;
 
         if let Some(ip) = &self.ip_addr {
-            ret.push(' ');
-            ret.push('(');
-            ret.push_str(&ip);
-            ret.push(')');
+            write!(f, " ({})", &ip)?;
         }
 
-        ret
+        Ok(())
     }
 }
 
@@ -89,11 +79,17 @@ impl Module for NetworkModule {
 
         for (i, mut socket) in self.sockets.iter().enumerate() {
             socket.send(b"STATUS")?;
-            
+
             let mut response = String::new();
 
-            let mut buf = vec![0; 1024];
-            socket.read(&mut buf)?;
+            let mut buf = vec![];
+            let mut temp_buf: Vec<u8>;
+            let mut num_read = 1024;
+            while num_read == 1024 {
+                temp_buf = vec![0; 1024];
+                num_read = socket.read(&mut temp_buf)?;
+                buf.append(&mut temp_buf);
+            }
             buf.retain(|x| *x != 0);
             response.push_str(str::from_utf8(&buf)?);
 
@@ -104,7 +100,7 @@ impl Module for NetworkModule {
             };
 
             for line in response.lines() {
-                let mut line_split = line.split("=");
+                let mut line_split = line.split('=');
                 let key = line_split.next().unwrap();
                 let maybe_value = line_split.next();
 
@@ -143,21 +139,19 @@ impl NetworkModule {
         let mut ret = vec![];
         // let socket_path = "/var/run/wpa_supplicant/wlo1";
 
-        for entry in fs::read_dir("/var/run/wpa_supplicant/").unwrap() {
-            if let Ok(path) = entry {
-                let socket = Socket::new(Domain::UNIX, Type::DGRAM, None).unwrap();
-                let addr = SockAddr::unix(format!(
-                        "/tmp/status-network-{}-{}",
-                        id(),
-                        path.file_name().into_string().unwrap()
-                )).unwrap();
+        for path in fs::read_dir("/var/run/wpa_supplicant/").unwrap().flatten() {
+            let socket = Socket::new(Domain::UNIX, Type::DGRAM, None).unwrap();
+            let addr = SockAddr::unix(format!(
+                    "/tmp/status-network-{}-{}",
+                    id(),
+                    path.file_name().into_string().unwrap()
+            )).unwrap();
 
-                socket.bind(&addr).unwrap();
+            socket.bind(&addr).unwrap();
 
-                socket.connect(&SockAddr::unix(path.path()).unwrap()).unwrap();
+            socket.connect(&SockAddr::unix(path.path()).unwrap()).unwrap();
 
-                ret.push(socket);
-            }
+            ret.push(socket);
         }
 
         Self {
