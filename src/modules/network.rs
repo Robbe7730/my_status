@@ -5,6 +5,7 @@ use socket2::{Socket, Domain, Type, SockAddr};
 use std::io::Read;
 use std::process::id;
 use std::str;
+use std::fs;
 
 use async_trait::async_trait;
 
@@ -139,17 +140,28 @@ impl Module for NetworkModule {
 
 impl NetworkModule {
     pub fn new() -> Self {
-        let socket_path = "/var/run/wpa_supplicant/wlo1";
+        let mut ret = vec![];
+        // let socket_path = "/var/run/wpa_supplicant/wlo1";
 
-        let socket = Socket::new(Domain::UNIX, Type::DGRAM, None).unwrap();
-        let addr = SockAddr::unix(format!("/tmp/status-network-{}", id())).unwrap();
+        for entry in fs::read_dir("/var/run/wpa_supplicant/").unwrap() {
+            if let Ok(path) = entry {
+                let socket = Socket::new(Domain::UNIX, Type::DGRAM, None).unwrap();
+                let addr = SockAddr::unix(format!(
+                        "/tmp/status-network-{}-{}",
+                        id(),
+                        path.file_name().into_string().unwrap()
+                )).unwrap();
 
-        socket.bind(&addr).unwrap();
+                socket.bind(&addr).unwrap();
 
-        socket.connect(&SockAddr::unix(socket_path).unwrap()).unwrap();
+                socket.connect(&SockAddr::unix(path.path()).unwrap()).unwrap();
+
+                ret.push(socket);
+            }
+        }
 
         Self {
-            sockets: vec![socket],
+            sockets: ret,
         }
     }
 }
