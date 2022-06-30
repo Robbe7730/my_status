@@ -56,9 +56,15 @@ impl Module for PlayingModule {
         let mut ret = vec![];
 
         for player in players {
-            ret.push(
-                self.status_block_for_player(player)
-            );
+            let res = self.status_block_for_player(player);
+    
+            match res {
+                Ok(sb) => ret.push(sb),
+                Err(e) => {
+                    eprintln!("{:#?}", e);
+                    ret.push(StatusBlock::err())
+                }
+            }
         }
 
         Ok(ret)
@@ -72,7 +78,7 @@ impl PlayingModule {
         }
     }
 
-    fn status_block_for_player(&self, player: String) -> StatusBlock {
+    fn status_block_for_player(&self, player: String) -> Result<StatusBlock, dbus::Error> {
         let player_proxy = self.conn.with_proxy(
             &player,
             "/org/mpris/MediaPlayer2",
@@ -82,7 +88,7 @@ impl PlayingModule {
         let identity: String = player_proxy.get(
             "org.mpris.MediaPlayer2",
             "Identity"
-        ).unwrap();
+        )?;
 
         let playbackstatus: PlaybackStatus = PlaybackStatus::from(
             player_proxy.get(
@@ -90,17 +96,17 @@ impl PlayingModule {
                 "PlaybackStatus"
             ).unwrap_or(format!("Stopped"))
         );
-        
+
         let metadata: PropMap =  player_proxy.get(
             "org.mpris.MediaPlayer2.Player",
             "Metadata"
-        ).unwrap();
+        )?;
 
         let maybe_title: Option<&String> = arg::prop_cast(&metadata, "xesam:title");
         let maybe_artists: Option<&Vec<String>> = arg::prop_cast(&metadata, "xesam:artist");
 
-        let content;
-        
+        let mut content;
+
         if let Some(title) = maybe_title {
             if let Some(artists) = maybe_artists {
                 if artists.len() == 0 {
@@ -115,13 +121,22 @@ impl PlayingModule {
             content = identity.to_string();
         }
 
+        let maybe_volume: Result<f64, dbus::Error> = player_proxy.get(
+            "org.mpris.MediaPlayer2.Player",
+            "Volume"
+        );
+
+        if let Ok(volume) = maybe_volume {
+            content = format!("{} (🔈{}%)", content, (volume*100.0).round());
+        }
+
         let display = format!(
             "{} {}",
             playbackstatus.icon(),
             content,
         );
 
-        StatusBlock::new("playing", &display)
-            .with_instance(&identity)
+        Ok(StatusBlock::new("playing", &display)
+            .with_instance(&identity))
     }
 }

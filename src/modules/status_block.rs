@@ -85,6 +85,10 @@ impl StatusBlock {
         }
     }
 
+    pub fn err() -> Self {
+        Self::new("error", "err").with_color("#ff0000")
+    }
+
     // TODO: Implement these as needed
 
     pub fn with_urgent(mut self, urgent: bool) -> Self {

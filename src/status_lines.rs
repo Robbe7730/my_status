@@ -30,9 +30,7 @@ impl StatusLines {
             )
             .await
             .into_iter()
-            .flat_map(|x| x.unwrap_or_else(|_|
-                vec![StatusBlock::new("error", "err").with_color("#ff0000")]
-            ))
+            .flat_map(|x| x.unwrap_or_else(|_| vec![StatusBlock::err()]))
             .collect()
         )
     }
